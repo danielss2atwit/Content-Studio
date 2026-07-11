@@ -1,0 +1,45 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: oklch(0.985 0.005 70);
+}
+
+#root {
+  height: 100vh;
+  width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.88 0.01 60);
+  border-radius: 4px;
+}
+
+a {
+  color: oklch(0.38 0.1 20);
+}
+
+a:hover {
+  color: oklch(0.3 0.1 20);
+}
+
+input,
+textarea,
+select {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid oklch(0.8 0.08 150);
+  outline-offset: 1px;
+}
