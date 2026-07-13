@@ -1,4 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from './supabaseClient';
+
+function useCloudState(key, initialValue) {
+  const [state, setState] = useState(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored !== null ? JSON.parse(stored) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+  const loadedFromCloud = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from('kv_store')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (!error && data) setState(data.value);
+        loadedFromCloud.current = true;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch {
+      // localStorage full or unavailable — cloud sync below still applies
+    }
+    if (!loadedFromCloud.current) return; // avoid overwriting cloud data with local defaults before the initial fetch resolves
+    const timeout = setTimeout(() => {
+      supabase.from('kv_store').upsert({ key, value: state, updated_at: new Date().toISOString() }, { onConflict: 'user_id,key' }).then(({ error }) => {
+        if (error) console.error('Cloud sync failed for', key, error);
+      });
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [key, state]);
+
+  return [state, setState];
+}
 
 const PALETTE = {
   coral: 'oklch(0.80 0.14 70)',
@@ -121,13 +168,13 @@ const TASK_TAGS = ['All', 'Priority', 'Instagram', 'LinkedIn'];
 
 function App() {
   const [activeTab, setActiveTab] = useState('today');
-  const [pillars, setPillars] = useState(INITIAL_PILLARS);
-  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
-  const [generalIdeas, setGeneralIdeas] = useState(INITIAL_GENERAL_IDEAS);
-  const [hookIdeas, setHookIdeas] = useState(INITIAL_HOOK_IDEAS);
-  const [posts, setPosts] = useState(INITIAL_POSTS);
-  const [storiesByDate, setStoriesByDate] = useState(INITIAL_STORIES_BY_DATE);
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const [pillars, setPillars] = useCloudState('cs_pillars', INITIAL_PILLARS);
+  const [schedule, setSchedule] = useCloudState('cs_schedule', INITIAL_SCHEDULE);
+  const [generalIdeas, setGeneralIdeas] = useCloudState('cs_generalIdeas', INITIAL_GENERAL_IDEAS);
+  const [hookIdeas, setHookIdeas] = useCloudState('cs_hookIdeas', INITIAL_HOOK_IDEAS);
+  const [posts, setPosts] = useCloudState('cs_posts', INITIAL_POSTS);
+  const [storiesByDate, setStoriesByDate] = useCloudState('cs_storiesByDate', INITIAL_STORIES_BY_DATE);
+  const [tasks, setTasks] = useCloudState('cs_tasks', INITIAL_TASKS);
   const [taskFilter, setTaskFilter] = useState('All');
   const [selectedPillarId, setSelectedPillarId] = useState(null);
   const [selectedPostRef, setSelectedPostRef] = useState(null);
@@ -632,7 +679,43 @@ function App() {
 
               <div style={css('display:grid;grid-template-columns:1fr 1.5fr;gap:30px;')}>
                 <div>
-                  <div style={css(`height:200px;background:${pillarTint(selectedPost.pillarId)};border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:12px;color:oklch(0.28 0.02 50);font-weight:600;margin-bottom:16px;`)}>cover image placeholder</div>
+                  <label
+                    style={{
+                      ...css(
+                        `height:200px;background:${selectedPost.coverImage ? '#fff' : pillarTint(selectedPost.pillarId)};border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:12px;color:oklch(0.28 0.02 50);font-weight:600;margin-bottom:16px;cursor:pointer;overflow:hidden;position:relative;`
+                      ),
+                      ...(selectedPost.coverImage
+                        ? { backgroundImage: `url(${selectedPost.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                        : {}),
+                    }}
+                  >
+                    {!selectedPost.coverImage && <span>+ Upload cover image</span>}
+                    {selectedPost.coverImage && (
+                      <span
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          updateSelectedPost('coverImage', null);
+                        }}
+                        style={css('position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;')}
+                      >
+                        ✕
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => updateSelectedPost('coverImage', reader.result);
+                        reader.readAsDataURL(file);
+                        e.target.value = '';
+                      }}
+                      style={css('display:none;')}
+                    />
+                  </label>
                   <div style={css('display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;')}>
                     <select
                       value={selectedPost.pillarId || ''}
@@ -771,20 +854,41 @@ function App() {
                             <div
                               key={post.id}
                               onClick={() => setSelectedPostRef({ dateKey: key, index: idx })}
-                              style={css(`cursor:pointer;background:${pillarTint(post.pillarId)};border-radius:12px;padding:10px 14px;min-width:200px;position:relative;`)}
+                              style={css(
+                                `cursor:pointer;background:${post.coverImage ? '#fff' : pillarTint(post.pillarId)};border-radius:12px;padding:10px 14px;min-width:200px;position:relative;overflow:hidden;`
+                              )}
                             >
-                              <span
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removePost(key, idx);
-                                }}
-                                style={css('position:absolute;top:8px;right:8px;cursor:pointer;opacity:0.5;font-size:11px;line-height:1;')}
+                              {post.coverImage && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    backgroundImage: `url(${post.coverImage})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                  }}
+                                ></div>
+                              )}
+                              <div
+                                style={css(
+                                  post.coverImage
+                                    ? 'position:relative;background:linear-gradient(to top,rgba(0,0,0,0.6),rgba(0,0,0,0.15));margin:-10px -14px;padding:10px 14px;color:#fff;'
+                                    : 'position:relative;'
+                                )}
                               >
-                                ✕
-                              </span>
-                              <div style={css('font-size:10.5px;font-weight:700;opacity:0.7;margin-bottom:4px;padding-right:14px;')}>{pillarName(post.pillarId)}</div>
-                              <div style={css('font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;padding-right:14px;')}>{post.title}</div>
-                              <div style={css('font-size:10.5px;opacity:0.7;')}>{post.status}</div>
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removePost(key, idx);
+                                  }}
+                                  style={css('position:absolute;top:8px;right:8px;cursor:pointer;opacity:0.5;font-size:11px;line-height:1;')}
+                                >
+                                  ✕
+                                </span>
+                                <div style={css('font-size:10.5px;font-weight:700;opacity:0.7;margin-bottom:4px;padding-right:14px;')}>{pillarName(post.pillarId)}</div>
+                                <div style={css('font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;padding-right:14px;')}>{post.title}</div>
+                                <div style={css('font-size:10.5px;opacity:0.7;')}>{post.status}</div>
+                              </div>
                             </div>
                           ))
                         )}
@@ -797,15 +901,15 @@ function App() {
           ))}
 
         {activeTab === 'grid' && (
-          <div style={css('max-width:920px;')}>
+          <div style={css('max-width:1400px;')}>
             <div style={css("font-family:'Lora',serif;font-size:28px;font-weight:700;margin-bottom:4px;")}>Grid Preview</div>
             <div style={css('font-size:13.5px;color:' + PALETTE.inkSoft + ';margin-bottom:26px;')}>How your feed will read across pillars.</div>
-            <div style={css(`max-width:380px;margin:0 auto;border:10px solid ${PALETTE.ink};border-radius:34px;overflow:hidden;`)}>
-              <div style={css('background:oklch(0.985 0.005 70);padding:14px 16px 8px;display:flex;align-items:center;gap:10px;')}>
-                <div style={css(`width:36px;height:36px;border-radius:50%;background:${PALETTE.coral};`)}></div>
-                <div style={css('font-size:13.5px;font-weight:700;')}>fuelmystride</div>
+            <div style={css(`max-width:900px;margin:0 auto;border:14px solid ${PALETTE.ink};border-radius:44px;overflow:hidden;`)}>
+              <div style={css('background:oklch(0.985 0.005 70);padding:22px 26px 14px;display:flex;align-items:center;gap:14px;')}>
+                <div style={css(`width:52px;height:52px;border-radius:50%;background:${PALETTE.coral};`)}></div>
+                <div style={css('font-size:18px;font-weight:700;')}>fuelmystride</div>
               </div>
-              <div style={css('display:grid;grid-template-columns:repeat(3,1fr);gap:2px;')}>
+              <div style={css('display:grid;grid-template-columns:repeat(3,1fr);gap:3px;')}>
                 {allPosts.map((post) => (
                   <div
                     key={post.id}
@@ -813,10 +917,15 @@ function App() {
                       setActiveTab('plan');
                       setSelectedPostRef({ dateKey: post.dk, index: post.idx });
                     }}
-                    style={css(`aspect-ratio:1;background:${pillarTint(post.pillarId)};position:relative;cursor:pointer;display:flex;align-items:flex-end;overflow:hidden;`)}
+                    style={{
+                      ...css(`aspect-ratio:1;background:${pillarTint(post.pillarId)};position:relative;cursor:pointer;display:flex;align-items:flex-end;overflow:hidden;`),
+                      ...(post.coverImage
+                        ? { backgroundImage: `url(${post.coverImage})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }
+                        : {}),
+                    }}
                   >
-                    <div style={css('background:linear-gradient(to top,rgba(0,0,0,0.55),transparent 65%);padding:8px;width:100%;')}>
-                      <div style={css('font-size:11px;font-weight:600;color:#fff;')}>{post.title}</div>
+                    <div style={css('background:linear-gradient(to top,rgba(0,0,0,0.55),transparent 65%);padding:16px;width:100%;')}>
+                      <div style={css('font-size:15px;font-weight:600;color:#fff;')}>{post.title}</div>
                     </div>
                   </div>
                 ))}

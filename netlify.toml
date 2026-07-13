@@ -1,0 +1,4 @@
+[build]
+  base = "content-studio"
+  command = "npm run build"
+  publish = "dist"
