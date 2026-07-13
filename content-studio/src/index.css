@@ -24,11 +24,11 @@ body {
 }
 
 a {
-  color: oklch(0.38 0.1 20);
+  color: oklch(0.32 0.11 300);
 }
 
 a:hover {
-  color: oklch(0.3 0.1 20);
+  color: oklch(0.26 0.11 300);
 }
 
 input,
@@ -40,6 +40,6 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid oklch(0.8 0.08 150);
+  outline: 2px solid oklch(0.78 0.15 70);
   outline-offset: 1px;
 }
