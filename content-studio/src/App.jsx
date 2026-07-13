@@ -52,11 +52,40 @@ const PALETTE = {
   sage: 'oklch(0.85 0.06 300)',
   lavender: 'oklch(0.76 0.10 285)',
   butter: 'oklch(0.87 0.10 85)',
+  sky: 'oklch(0.82 0.09 220)',
+  blush: 'oklch(0.83 0.11 20)',
+  mint: 'oklch(0.86 0.08 160)',
+  periwinkle: 'oklch(0.80 0.10 260)',
+  clay: 'oklch(0.78 0.12 45)',
+  moss: 'oklch(0.83 0.07 140)',
   ink: 'oklch(0.22 0.015 50)',
   inkSoft: 'oklch(0.5 0.02 50)',
   primary: 'oklch(0.32 0.11 300)',
   gold: 'oklch(0.78 0.15 70)',
 };
+
+// Pastel swatches (in the same oklch family as the rest of the theme) that get
+// handed out to new pillars in order, so each pillar keeps a distinct color.
+const PILLAR_COLORS = [
+  PALETTE.coral,
+  PALETTE.sage,
+  PALETTE.lavender,
+  PALETTE.butter,
+  PALETTE.sky,
+  PALETTE.blush,
+  PALETTE.mint,
+  PALETTE.periwinkle,
+  PALETTE.clay,
+  PALETTE.moss,
+];
+
+function nextPillarColor(existingPillars) {
+  const used = new Set(existingPillars.map((p) => p.color));
+  const unused = PILLAR_COLORS.find((c) => !used.has(c));
+  if (unused) return unused;
+  // every swatch is taken — cycle back through the list
+  return PILLAR_COLORS[existingPillars.length % PILLAR_COLORS.length];
+}
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const STATUS_OPTIONS = ['Needs Idea', 'Idea Set', 'Scripting', 'Filming', 'Editing', 'Ready to Post', 'Posted'];
 const STATUS_OPTIONS_OTHER = ['Not Started', 'Idea', 'Notes', 'Draft', 'Final', 'Ready to Post', 'Posted'];
@@ -540,7 +569,7 @@ function App() {
                 <div
                   onClick={() => {
                     const id = 'p' + Date.now();
-                    setPillars((prev) => [...prev, { id, name: 'New Pillar', emoji: '✨', color: PALETTE.sage, about: '', days: [], ideas: [] }]);
+                    setPillars((prev) => [...prev, { id, name: 'New Pillar', emoji: '✨', color: nextPillarColor(prev), about: '', days: [], ideas: [] }]);
                     setSelectedPillarId(id);
                   }}
                   style={css('flex:none;width:220px;height:180px;border-radius:18px;border:2px dashed oklch(0.85 0.01 60);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:oklch(0.55 0.02 50);')}
