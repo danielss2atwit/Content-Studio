@@ -201,6 +201,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('today');
   const [pillars, setPillars] = useCloudState('cs_pillars', INITIAL_PILLARS);
   const [schedule, setSchedule] = useCloudState('cs_schedule', INITIAL_SCHEDULE);
+  const [scheduleStartDow, setScheduleStartDow] = useCloudState('cs_scheduleStartDow', 0);
   const [generalIdeas, setGeneralIdeas] = useCloudState('cs_generalIdeas', INITIAL_GENERAL_IDEAS);
   const [hookIdeas, setHookIdeas] = useCloudState('cs_hookIdeas', INITIAL_HOOK_IDEAS);
   const [posts, setPosts] = useCloudState('cs_posts', INITIAL_POSTS);
@@ -290,8 +291,9 @@ function App() {
   const todayDate = TODAY;
   const topBarDateLabel = todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   const todayDow = (todayDate.getDay() + 6) % 7;
-  const sched = schedule[todayDow];
-  const todayTask = { type: sched.type, title: sched.title, description: `Step for your Day ${todayDow + 1} batching cycle — about ${sched.minutes} min.`, tint: TYPE_TINT_MAP[sched.type] || PALETTE.sage };
+  const cycleDayIndex = (todayDow - scheduleStartDow + 7) % 7;
+  const sched = schedule[cycleDayIndex];
+  const todayTask = { type: sched.type, title: sched.title, description: `Step for your Day ${cycleDayIndex + 1} batching cycle — about ${sched.minutes} min.`, tint: TYPE_TINT_MAP[sched.type] || PALETTE.sage };
   const todayPostsArr = posts[TODAY_KEY] || [];
   const hasTodayPost = todayPostsArr.length > 0;
   const todayPost = hasTodayPost ? todayPostsArr[0] : null;
@@ -301,7 +303,7 @@ function App() {
   // STRATEGIZE
   const selectedPillar = selectedPillarId ? pillars.find((p) => p.id === selectedPillarId) : null;
   const pillarOptions = [{ id: '', name: 'Unassigned' }, ...pillars.map((p) => ({ id: p.id, name: p.name }))];
-  const scheduleRows = schedule.map((row, i) => ({ dayNum: i + 1, title: row.title, type: row.type, tint: TYPE_TINT_MAP[row.type] || PALETTE.sage }));
+  const scheduleRows = schedule.map((row, i) => ({ dayNum: i + 1, dowLabel: DOW[(scheduleStartDow + i) % 7], title: row.title, type: row.type, tint: TYPE_TINT_MAP[row.type] || PALETTE.sage }));
 
   // PLAN
   const weekStart = addDays(BASE_MONDAY, weekOffset * 7);
@@ -586,13 +588,29 @@ function App() {
                       Edit
                     </div>
                   </div>
+                  <div style={css('display:flex;align-items:center;gap:8px;margin-bottom:12px;')}>
+                    <label style={css('font-size:12px;color:' + PALETTE.inkSoft + ';')}>Day 1 starts on</label>
+                    <select
+                      value={scheduleStartDow}
+                      onChange={(e) => setScheduleStartDow(Number(e.target.value))}
+                      style={css('flex:1;border:1px solid oklch(0.9 0.01 60);border-radius:8px;padding:6px 10px;font-size:12.5px;')}
+                    >
+                      {DOW.map((d, i) => (
+                        <option key={d} value={i}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div style={css('display:flex;flex-direction:column;gap:1px;background:oklch(0.9 0.01 60);border-radius:14px;overflow:hidden;')}>
                     {scheduleRows.map((s) => (
                       <div key={s.dayNum} style={css('background:#fff;padding:12px 16px;display:flex;align-items:center;gap:14px;')}>
                         <div style={css(`width:46px;flex:none;font-size:11px;font-weight:700;color:${PALETTE.inkSoft};background:${s.tint};padding:5px 0;text-align:center;border-radius:8px;`)}>{`D${s.dayNum}`}</div>
                         <div>
                           <div style={css('font-size:13.5px;font-weight:600;')}>{s.title}</div>
-                          <div style={css('font-size:11.5px;color:' + PALETTE.inkSoft + ';')}>{s.type}</div>
+                          <div style={css('font-size:11.5px;color:' + PALETTE.inkSoft + ';')}>
+                            {s.type} · {s.dowLabel}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1070,7 +1088,9 @@ function App() {
 
               {schedule.map((row, i) => (
                 <div key={i} style={css('border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:14px 16px;margin-bottom:10px;')}>
-                  <div style={css('font-size:11.5px;font-weight:600;color:oklch(0.5 0.02 50);margin-bottom:8px;')}>Day {i + 1}</div>
+                  <div style={css('font-size:11.5px;font-weight:600;color:oklch(0.5 0.02 50);margin-bottom:8px;')}>
+                    Day {i + 1} · {DOW[(scheduleStartDow + i) % 7]}
+                  </div>
                   <input
                     value={row.title}
                     onChange={(e) =>
