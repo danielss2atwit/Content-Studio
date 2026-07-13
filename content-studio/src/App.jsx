@@ -59,8 +59,10 @@ const PALETTE = {
 };
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const STATUS_OPTIONS = ['Needs Idea', 'Idea Set', 'Scripting', 'Filming', 'Editing', 'Ready to Post', 'Posted'];
+const STATUS_OPTIONS_OTHER = ['Not Started', 'Idea', 'Notes', 'Draft', 'Final', 'Ready to Post', 'Posted'];
 const ACTIVITY_TYPES = ['Planning & Ideation', 'Scripting', 'Filming', 'Editing', 'Final Prep & Publishing', 'Community', 'Analytics & Performance Review'];
-const PLATFORMS = ['Instagram', 'LinkedIn'];
+const PLATFORMS = ['Instagram', 'LinkedIn', 'Email'];
+const CONTENT_TYPES = ['30-Sec Reel', '60-Sec Reel', 'Carousel', 'B-Roll Reel', 'Single Photo', 'Talking Head', 'Meme / Text Post'];
 const TODAY = new Date();
 const BASE_MONDAY = startOfWeek(TODAY);
 const TODAY_KEY = dateKey(TODAY);
@@ -717,19 +719,21 @@ function App() {
                     />
                   </label>
                   <div style={css('display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;')}>
-                    <select
-                      value={selectedPost.pillarId || ''}
-                      onChange={(e) => updateSelectedPost('pillarId', e.target.value || null)}
-                      style={css('border:1px solid oklch(0.9 0.01 60);border-radius:8px;padding:6px 10px;font-size:13px;')}
-                    >
-                      {pillarOptions.map((po) => (
-                        <option key={po.id} value={po.id}>
-                          {po.name}
-                        </option>
-                      ))}
-                    </select>
+                    {selectedPost.platforms.includes('Instagram') && (
+                      <select
+                        value={selectedPost.pillarId || ''}
+                        onChange={(e) => updateSelectedPost('pillarId', e.target.value || null)}
+                        style={css('border:1px solid oklch(0.9 0.01 60);border-radius:8px;padding:6px 10px;font-size:13px;')}
+                      >
+                        {pillarOptions.map((po) => (
+                          <option key={po.id} value={po.id}>
+                            {po.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <select value={selectedPost.status} onChange={(e) => updateSelectedPost('status', e.target.value)} style={css('border:1px solid oklch(0.9 0.01 60);border-radius:8px;padding:6px 10px;font-size:13px;')}>
-                      {STATUS_OPTIONS.map((so) => (
+                      {(selectedPost.platforms.includes('Instagram') ? STATUS_OPTIONS : STATUS_OPTIONS_OTHER).map((so) => (
                         <option key={so} value={so}>
                           {so}
                         </option>
@@ -780,33 +784,107 @@ function App() {
                     onChange={(e) => updateSelectedPost('title', e.target.value)}
                     style={css("font-family:'Lora',serif;font-size:22px;font-weight:700;background:transparent;border:none;outline:none;width:100%;margin-bottom:20px;")}
                   />
-                  <div style={css('margin-bottom:16px;')}>
-                    <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Hook</div>
-                    <textarea
-                      value={selectedPost.hook}
-                      onChange={(e) => updateSelectedPost('hook', e.target.value)}
-                      placeholder="What's the opening line that stops the scroll?"
-                      style={css('width:100%;min-height:52px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
-                    />
-                  </div>
-                  <div style={css('margin-bottom:16px;')}>
-                    <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Script / Talking Points</div>
-                    <textarea
-                      value={selectedPost.script}
-                      onChange={(e) => updateSelectedPost('script', e.target.value)}
-                      placeholder="Bullet points or full script…"
-                      style={css('width:100%;min-height:110px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
-                    />
-                  </div>
-                  <div>
-                    <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Caption</div>
-                    <textarea
-                      value={selectedPost.caption}
-                      onChange={(e) => updateSelectedPost('caption', e.target.value)}
-                      placeholder="Pre-write the caption…"
-                      style={css('width:100%;min-height:90px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
-                    />
-                  </div>
+                  {(selectedPost.platforms.length === 0 || selectedPost.platforms.includes('Instagram')) && (
+                    <>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Content Type</div>
+                        <select
+                          value={selectedPost.contentType || ''}
+                          onChange={(e) => updateSelectedPost('contentType', e.target.value)}
+                          style={css('width:100%;border:1px solid oklch(0.9 0.01 60);border-radius:8px;padding:9px 12px;font-size:13.5px;')}
+                        >
+                          <option value="">Select a format…</option>
+                          {CONTENT_TYPES.map((ct) => (
+                            <option key={ct} value={ct}>
+                              {ct}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Hook</div>
+                        <textarea
+                          value={selectedPost.hook}
+                          onChange={(e) => updateSelectedPost('hook', e.target.value)}
+                          placeholder="What's the opening line that stops the scroll?"
+                          style={css('width:100%;min-height:52px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Script / Talking Points</div>
+                        <textarea
+                          value={selectedPost.script}
+                          onChange={(e) => updateSelectedPost('script', e.target.value)}
+                          placeholder="Bullet points or full script…"
+                          style={css('width:100%;min-height:110px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Caption</div>
+                        <textarea
+                          value={selectedPost.caption}
+                          onChange={(e) => updateSelectedPost('caption', e.target.value)}
+                          placeholder="Pre-write the caption…"
+                          style={css('width:100%;min-height:90px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {selectedPost.platforms.includes('LinkedIn') && (
+                    <>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>LinkedIn Ideas</div>
+                        <textarea
+                          value={selectedPost.linkedinIdeas || ''}
+                          onChange={(e) => updateSelectedPost('linkedinIdeas', e.target.value)}
+                          placeholder="Angles, takeaways, stories to pull from…"
+                          style={css('width:100%;min-height:70px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Full Post</div>
+                        <textarea
+                          value={selectedPost.linkedinPost || ''}
+                          onChange={(e) => updateSelectedPost('linkedinPost', e.target.value)}
+                          placeholder="Write out the whole LinkedIn post…"
+                          style={css('width:100%;min-height:180px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {selectedPost.platforms.includes('Email') && (
+                    <>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Email Ideas</div>
+                        <textarea
+                          value={selectedPost.emailIdeas || ''}
+                          onChange={(e) => updateSelectedPost('emailIdeas', e.target.value)}
+                          placeholder="What's this email about? Angles to cover…"
+                          style={css('width:100%;min-height:70px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                      <div style={css('margin-bottom:16px;')}>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Links to Include</div>
+                        <textarea
+                          value={selectedPost.emailLinks || ''}
+                          onChange={(e) => updateSelectedPost('emailLinks', e.target.value)}
+                          placeholder="Paste links to feature in this email…"
+                          style={css('width:100%;min-height:60px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                      <div>
+                        <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Full Email</div>
+                        <textarea
+                          value={selectedPost.emailBody || ''}
+                          onChange={(e) => updateSelectedPost('emailBody', e.target.value)}
+                          placeholder="Write out the whole email…"
+                          style={css('width:100%;min-height:180px;border:1px solid oklch(0.9 0.01 60);border-radius:12px;padding:12px 14px;font-size:14px;resize:vertical;')}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -837,7 +915,22 @@ function App() {
                             setSelectedPostRef({ dateKey: key, index: 0 });
                             return;
                           }
-                          const newPost = { id: 'np' + Date.now(), title: '', pillarId: null, status: 'Needs Idea', platforms: [], hook: '', script: '', caption: '' };
+                          const newPost = {
+                            id: 'np' + Date.now(),
+                            title: '',
+                            pillarId: null,
+                            status: 'Needs Idea',
+                            platforms: [],
+                            hook: '',
+                            script: '',
+                            caption: '',
+                            contentType: '',
+                            linkedinIdeas: '',
+                            linkedinPost: '',
+                            emailIdeas: '',
+                            emailLinks: '',
+                            emailBody: '',
+                          };
                           setPosts((prev) => ({ ...prev, [key]: [...(prev[key] || []), newPost] }));
                           setSelectedPostRef({ dateKey: key, index: dayPosts.length });
                         }}
