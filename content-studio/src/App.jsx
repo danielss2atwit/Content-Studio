@@ -244,6 +244,27 @@ function App() {
   function removePost(dk, idx) {
     setPosts((prev) => ({ ...prev, [dk]: (prev[dk] || []).filter((_, i) => i !== idx) }));
   }
+  function addPost(dk) {
+    const newPost = {
+      id: 'np' + Date.now(),
+      title: '',
+      pillarId: null,
+      status: 'Needs Idea',
+      platforms: [],
+      hook: '',
+      script: '',
+      caption: '',
+      contentType: '',
+      linkedinIdeas: '',
+      linkedinPost: '',
+      emailIdeas: '',
+      emailLinks: '',
+      emailBody: '',
+    };
+    const newIndex = (posts[dk] || []).length;
+    setPosts((prev) => ({ ...prev, [dk]: [...(prev[dk] || []), newPost] }));
+    setSelectedPostRef({ dateKey: dk, index: newIndex });
+  }
 
   function updateSelectedPost(field, value) {
     setPosts((prev) => {
@@ -963,24 +984,7 @@ function App() {
                             setSelectedPostRef({ dateKey: key, index: 0 });
                             return;
                           }
-                          const newPost = {
-                            id: 'np' + Date.now(),
-                            title: '',
-                            pillarId: null,
-                            status: 'Needs Idea',
-                            platforms: [],
-                            hook: '',
-                            script: '',
-                            caption: '',
-                            contentType: '',
-                            linkedinIdeas: '',
-                            linkedinPost: '',
-                            emailIdeas: '',
-                            emailLinks: '',
-                            emailBody: '',
-                          };
-                          setPosts((prev) => ({ ...prev, [key]: [...(prev[key] || []), newPost] }));
-                          setSelectedPostRef({ dateKey: key, index: dayPosts.length });
+                          addPost(key);
                         }}
                         style={css('width:70px;flex:none;cursor:pointer;')}
                       >
@@ -1033,6 +1037,14 @@ function App() {
                             </div>
                           ))
                         )}
+                        <div
+                          onClick={() => addPost(key)}
+                          style={css(
+                            'cursor:pointer;border:1px dashed oklch(0.85 0.02 50);border-radius:12px;padding:10px 16px;min-width:60px;display:flex;align-items:center;justify-content:center;font-size:18px;color:oklch(0.6 0.02 50);'
+                          )}
+                        >
+                          +
+                        </div>
                       </div>
                       <div style={css('width:120px;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;')}>
                         {dayPillars.map((p) => (
