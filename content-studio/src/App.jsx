@@ -350,7 +350,7 @@ function App() {
   weekDates.forEach((d, i) => {
     const dk = dateKey(d);
     (posts[dk] || []).forEach((post, idx) => {
-      weekPostOptions.push({ value: `${dk}__${idx}`, label: `${DOW[i]} – ${post.title || 'Untitled idea'}` });
+      weekPostOptions.push({ value: `${dk}__${idx}`, label: `${DOW[i]} – ${post.title || 'Untitled'}` });
     });
   });
 
@@ -870,11 +870,15 @@ function App() {
                 </div>
 
                 <div>
-                  <input
-                    value={selectedPost.title}
-                    onChange={(e) => updateSelectedPost('title', e.target.value)}
-                    style={css("font-family:'Lora',serif;font-size:22px;font-weight:700;background:transparent;border:none;outline:none;width:100%;margin-bottom:20px;")}
-                  />
+                  <div style={css('margin-bottom:20px;')}>
+                    <div style={css('font-size:12px;font-weight:700;color:' + PALETTE.inkSoft + ';letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;')}>Title / Topic</div>
+                    <input
+                      value={selectedPost.title}
+                      onChange={(e) => updateSelectedPost('title', e.target.value)}
+                      placeholder="What's this piece about?"
+                      style={css("font-family:'Lora',serif;font-size:22px;font-weight:700;background:transparent;border:none;outline:none;width:100%;")}
+                    />
+                  </div>
                   {(selectedPost.platforms.length === 0 || selectedPost.platforms.includes('Instagram')) && (
                     <>
                       <div style={css('margin-bottom:16px;')}>
@@ -1181,7 +1185,7 @@ function App() {
                     }}
                   >
                     <div style={css('background:linear-gradient(to top,rgba(0,0,0,0.55),transparent 65%);padding:16px;width:100%;')}>
-                      <div style={css('font-size:15px;font-weight:600;color:#fff;')}>{post.title}</div>
+                      <div style={css('font-size:15px;font-weight:600;color:#fff;')}>{post.title || 'Untitled'}</div>
                     </div>
                   </div>
                 ))}
