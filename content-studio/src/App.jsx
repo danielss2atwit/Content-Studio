@@ -205,6 +205,7 @@ function App() {
   const [generalIdeas, setGeneralIdeas] = useCloudState('cs_generalIdeas', INITIAL_GENERAL_IDEAS);
   const [hookIdeas, setHookIdeas] = useCloudState('cs_hookIdeas', INITIAL_HOOK_IDEAS);
   const [posts, setPosts] = useCloudState('cs_posts', INITIAL_POSTS);
+  const [filmingSchedule, setFilmingSchedule] = useCloudState('cs_filmingSchedule', {});
   const [storiesByDate, setStoriesByDate] = useCloudState('cs_storiesByDate', INITIAL_STORIES_BY_DATE);
   const [tasks, setTasks] = useCloudState('cs_tasks', INITIAL_TASKS);
   const [taskFilter, setTaskFilter] = useState('All');
@@ -264,6 +265,21 @@ function App() {
     const newIndex = (posts[dk] || []).length;
     setPosts((prev) => ({ ...prev, [dk]: [...(prev[dk] || []), newPost] }));
     setSelectedPostRef({ dateKey: dk, index: newIndex });
+  }
+
+  function addFilmingItem(dk) {
+    const newItem = { id: 'fs' + Date.now(), text: '', linkedPost: null };
+    setFilmingSchedule((prev) => ({ ...prev, [dk]: [...(prev[dk] || []), newItem] }));
+  }
+  function updateFilmingItem(dk, idx, field, value) {
+    setFilmingSchedule((prev) => {
+      const arr = [...(prev[dk] || [])];
+      arr[idx] = { ...arr[idx], [field]: value };
+      return { ...prev, [dk]: arr };
+    });
+  }
+  function removeFilmingItem(dk, idx) {
+    setFilmingSchedule((prev) => ({ ...prev, [dk]: (prev[dk] || []).filter((_, i) => i !== idx) }));
   }
 
   function updateSelectedPost(field, value) {
@@ -330,6 +346,13 @@ function App() {
   const weekStart = addDays(BASE_MONDAY, weekOffset * 7);
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekRangeLabel = `${fmtDate(weekDates[0])} – ${fmtDate(weekDates[6])}`;
+  const weekPostOptions = [];
+  weekDates.forEach((d, i) => {
+    const dk = dateKey(d);
+    (posts[dk] || []).forEach((post, idx) => {
+      weekPostOptions.push({ value: `${dk}__${idx}`, label: `${DOW[i]} – ${post.title || 'Untitled idea'}` });
+    });
+  });
 
   let selectedPost = null;
   let selectedPostDayLabel = '';
@@ -1067,6 +1090,68 @@ function App() {
                     </div>
                   );
                 })}
+              </div>
+
+              <div style={css('margin-top:32px;')}>
+                <div style={css("font-family:'Lora',serif;font-size:18px;font-weight:700;margin-bottom:12px;")}>Filming Schedule</div>
+                <div style={css('display:grid;grid-template-columns:repeat(7,1fr);gap:10px;')}>
+                  {weekDates.map((d, i) => {
+                    const key = dateKey(d);
+                    const dayFilming = filmingSchedule[key] || [];
+                    return (
+                      <div key={key} style={css('background:#fff;border:1px solid oklch(0.9 0.01 60);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:150px;')}>
+                        <div>
+                          <div style={css('font-size:10.5px;font-weight:700;letter-spacing:0.04em;color:' + PALETTE.inkSoft + ';')}>{DOW[i]}</div>
+                          <div style={css("font-family:'Lora',serif;font-size:15px;font-weight:700;")}>{fmtDate(d)}</div>
+                        </div>
+                        {dayFilming.map((item, idx) => (
+                          <div key={item.id} style={css(`background:${PALETTE.coral};border-radius:10px;padding:8px 10px;position:relative;`)}>
+                            <span
+                              onClick={() => removeFilmingItem(key, idx)}
+                              style={css('position:absolute;top:6px;right:6px;cursor:pointer;opacity:0.5;font-size:10px;line-height:1;')}
+                            >
+                              ✕
+                            </span>
+                            <textarea
+                              value={item.text}
+                              onChange={(e) => updateFilmingItem(key, idx, 'text', e.target.value)}
+                              placeholder="What are you filming?"
+                              style={css('width:100%;background:transparent;border:none;outline:none;font-size:12.5px;resize:vertical;min-height:36px;padding-right:14px;')}
+                            />
+                            <select
+                              value={item.linkedPost ? `${item.linkedPost.dateKey}__${item.linkedPost.index}` : ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) {
+                                  updateFilmingItem(key, idx, 'linkedPost', null);
+                                  return;
+                                }
+                                const sep = val.indexOf('__');
+                                updateFilmingItem(key, idx, 'linkedPost', { dateKey: val.slice(0, sep), index: Number(val.slice(sep + 2)) });
+                              }}
+                              style={css('width:100%;font-size:11px;border:none;background:rgba(255,255,255,0.6);border-radius:6px;padding:4px 6px;margin-top:2px;')}
+                            >
+                              <option value="">Link a video idea…</option>
+                              {weekPostOptions.map((po) => (
+                                <option key={po.value} value={po.value}>
+                                  {po.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                        <div
+                          onClick={() => addFilmingItem(key)}
+                          style={css(
+                            'cursor:pointer;border:1px dashed oklch(0.85 0.02 50);border-radius:10px;padding:8px;text-align:center;font-size:16px;color:oklch(0.6 0.02 50);'
+                          )}
+                        >
+                          +
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ))}
