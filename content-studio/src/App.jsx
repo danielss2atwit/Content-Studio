@@ -954,6 +954,7 @@ function App() {
                 {weekDates.map((d, i) => {
                   const key = dateKey(d);
                   const dayPosts = posts[key] || [];
+                  const dayPillars = pillars.filter((p) => p.days.includes(i));
                   return (
                     <div key={key} style={css('display:flex;gap:20px;background:#fff;border:1px solid oklch(0.9 0.01 60);border-radius:16px;padding:18px 22px;align-items:flex-start;')}>
                       <div
@@ -1032,6 +1033,24 @@ function App() {
                             </div>
                           ))
                         )}
+                      </div>
+                      <div style={css('width:120px;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;')}>
+                        {dayPillars.map((p) => (
+                          <div
+                            key={p.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveTab('strategize');
+                              setSelectedPillarId(p.id);
+                            }}
+                            style={css(
+                              `background:${p.color};color:oklch(0.3 0.02 50);font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;`
+                            )}
+                          >
+                            <span>{p.emoji}</span>
+                            <span>{p.name}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
